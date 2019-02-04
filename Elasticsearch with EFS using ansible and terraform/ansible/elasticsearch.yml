@@ -1,0 +1,77 @@
+---
+  - hosts: all
+    remote_user: ec2-user
+    gather_facts: false
+    tasks:
+      - name: update
+        yum:
+          name: '*'
+          state: latest
+
+      - name: installing java
+        yum:
+          name: java
+          state: present
+
+      - name: adding a gpg key to our rpm database
+        rpm_key:
+          state: present
+          key: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+      - name: copying a repo file
+        copy:
+          src: elasticsearch.repo
+          dest: /etc/yum.repos.d/elasticsearch.repo
+
+      - name: installing elasticsearch
+        yum:
+          name: elasticsearch
+          state: present
+
+      - name: starting elasticsearch
+        service:
+          name: elasticsearch
+          state: started
+          enabled: yes
+
+      - name: installing vim
+        yum:
+          name: vim
+          state: present
+
+      - name: appending node.host line in configuration file
+        lineinfile:
+          path: /etc/elasticsearch/elasticsearch.yml
+          line: "network.host: 0.0.0.0"
+
+      - name: changes in jvm.options file because of memory issues only in case of t2.micro
+        replace:
+          path: /etc/elasticsearch/jvm.options
+          regexp: '-Xms1g'
+          replace: '-Xms512m'
+
+      - name: changes in jvm.options file because of memory issues only in case of t2.micro
+        replace:
+          path: /etc/elasticsearch/jvm.options
+          regexp: '-Xmx1g'
+          replace: '-Xmx512m'
+
+      - name: restarting elasticsearch service
+        service:
+          name: elasticsearch
+          state: restarted
+
+      - name: appending node.host line in configuration file
+        lineinfile:
+          path: /etc/elasticsearch/elasticsearch.yml
+          line: "node.master: true"
+
+      - name: appending node.host line in configuration file
+        lineinfile:
+          path: /etc/elasticsearch/elasticsearch.yml
+          line: "node.data: true"
+
+      - name: restarting elasticsearch service
+        service:
+          name: elasticsearch
+          state: restarted
